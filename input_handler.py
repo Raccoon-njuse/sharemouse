@@ -59,18 +59,30 @@ class InputHandler:
             return (1920, 1080)
 
     def start_hotkey_listener(self):
-        """Starts the listener that waits for the toggle hotkey (Ctrl+Alt+S)"""
-        logger.info("Starting hotkey listener...")
+        """Starts the listener that waits for the toggle hotkey (Ctrl+Alt+S) and middle mouse button"""
+        logger.info("Starting hotkey listener with mouse middle button support...")
+        
+        # Stop any existing listeners
         if self.hotkey_listener:
             self.hotkey_listener.stop()
-            
+        if hasattr(self, 'hotkey_mouse_listener') and self.hotkey_mouse_listener:
+            self.hotkey_mouse_listener.stop()
+        
+        # Start keyboard listener
         self.hotkey_listener = keyboard.Listener(on_press=self._on_hotkey_press, on_release=self._on_hotkey_release)
         self.hotkey_listener.start()
+        
+        # Start mouse listener to detect middle button clicks
+        self.hotkey_mouse_listener = mouse.Listener(on_click=self._on_mouse_click)
+        self.hotkey_mouse_listener.start()
 
     def stop_hotkey_listener(self):
         if self.hotkey_listener:
             self.hotkey_listener.stop()
             self.hotkey_listener = None
+        if hasattr(self, 'hotkey_mouse_listener') and self.hotkey_mouse_listener:
+            self.hotkey_mouse_listener.stop()
+            self.hotkey_mouse_listener = None
 
     def start_capture(self):
         """Starts capturing all input and suppressing it locally."""
@@ -168,8 +180,7 @@ class InputHandler:
         has_s = "'s'" in self.pressed_keys or 's' in self.pressed_keys # char keys format varies
         
         # logger.debug(f"Keys: {self.pressed_keys}")
-        
-        if has_ctrl and has_alt and has_s:
+        if has_alt and has_ctrl and has_s:
             logger.info("Toggle sequence detected!")
             if self.on_toggle:
                 self.on_toggle()
@@ -208,8 +219,20 @@ class InputHandler:
     def _on_mouse_click(self, x, y, button, pressed):
         nx = x / self.screen_size[0]
         ny = y / self.screen_size[1]
+        
         btn = str(button).replace('Button.', '')
-        if self.on_event:
+        
+        # Check for middle mouse button click to toggle control
+        if btn == 'middle' and pressed:
+            logger.info("Middle mouse button detected for toggle!")
+            if self.on_toggle:
+                self.on_toggle()
+            # Only skip sending if we're in capture mode (local control)
+            if not self.capturing:
+                return
+        
+        # Send other mouse events over network if in capture mode
+        if self.on_event and self.capturing:
             self.on_event({'type': 'mc', 'x': nx, 'y': ny, 'button': btn, 'pressed': pressed})
 
     def _on_mouse_scroll(self, x, y, dx, dy):

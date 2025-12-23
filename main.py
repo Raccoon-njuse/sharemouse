@@ -17,8 +17,8 @@ class ShareMouseApp:
         self.input_handler = InputHandler(
             on_event=self._on_input_event, 
             on_toggle=self._on_toggle_control,
-            invert_scroll_x=self.args.invert_scroll_x,
-            invert_scroll_y=self.args.invert_scroll_y
+            invert_scroll_x=self.args.invert_scroll_x == "on",
+            invert_scroll_y=self.args.invert_scroll_y == "on"
         )
         self.clipboard_mgr = ClipboardManager(on_update=self._on_clipboard_update)
         
@@ -29,8 +29,8 @@ class ShareMouseApp:
         parser.add_argument("--mode", choices=["server", "client"], required=True, help="Run as server (host) or client (guest)")
         parser.add_argument("--host", default="0.0.0.0", help="Host IP address to bind (server) or connect to (client)")
         parser.add_argument("--port", type=int, default=5001, help="Port number")
-        parser.add_argument("--invert-scroll-x", action="store_true", help="Invert horizontal mouse scroll direction")
-        parser.add_argument("--invert-scroll-y", action="store_true", help="Invert vertical mouse scroll direction (natural scrolling)")
+        parser.add_argument("--invert-scroll-x", choices=["on", "off"], default="on", help="Invert horizontal mouse scroll direction (default: on)")
+        parser.add_argument("--invert-scroll-y", choices=["on", "off"], default="on", help="Invert vertical mouse scroll direction (natural scrolling, default: on)")
         return parser.parse_args()
 
     def start(self):
@@ -43,9 +43,9 @@ class ShareMouseApp:
         self.clipboard_mgr.start()
         
         if self.mode == 'server':
-            # Server listens for hotkey to take control
+            # Server listens for mouse middle button to take control
             self.input_handler.start_hotkey_listener()
-            logger.info("Press Ctrl+Alt+S to toggle remote control")
+            logger.info("Click middle mouse button to toggle remote control")
         else:
             # Client just waits for commands
             logger.info("Waiting for commands from server...")
@@ -116,6 +116,9 @@ class ShareMouseApp:
                 # Current logic: Server controls Client via toggle.
                 pass
 
-if __name__ == "__main__":
+def main():
     app = ShareMouseApp()
     app.start()
+
+if __name__ == "__main__":
+    main()

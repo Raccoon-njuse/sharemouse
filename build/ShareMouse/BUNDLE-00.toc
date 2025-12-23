@@ -1,0 +1,3 @@
+([('ShareMouse',
+   '/Users/raccoon/Developer/other/sharemouse/dist/ShareMouse',
+   'EXECUTABLE')],)

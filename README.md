@@ -50,17 +50,23 @@ python main.py --mode server --host 192.168.1.100 --port 5001
 
 ##### 鼠标滚轮反转
 
-您可以使用以下参数反转鼠标滚轮方向：
+您可以使用以下参数反转鼠标滚轮方向（默认值为 on）：
 
 ```bash
-# 反转垂直滚轮（自然滚动）
-python main.py --mode server --invert-scroll-y
+# 使用默认设置（on）
+python main.py --mode server
 
-# 反转水平滚轮
-python main.py --mode client --host <服务器IP> --invert-scroll-x
+# 关闭水平滚轮反转
+python main.py --mode server --invert-scroll-x off
 
-# 同时反转水平和垂直滚轮
-python main.py --mode server --invert-scroll-x --invert-scroll-y
+# 关闭垂直滚轮反转
+python main.py --mode client --host <服务器IP> --invert-scroll-y off
+
+# 同时关闭水平和垂直滚轮反转
+python main.py --mode server --invert-scroll-x off --invert-scroll-y off
+
+# 明确指定开启水平滚轮反转
+python main.py --mode server --invert-scroll-x on
 ```
 
 ### 客户端模式
@@ -81,7 +87,7 @@ python main.py --mode client --host 192.168.1.100 --port 5001
 
 ## 快捷键
 
-- **Ctrl+Alt+S**（仅服务器）：切换远程控制的开启/关闭
+- **鼠标中键**（仅服务器）：切换远程控制的开启/关闭
 
 ## 工作原理
 
@@ -120,7 +126,7 @@ python main.py --mode client --host 192.168.1.100 --port 5001
 
 ### 服务器问题
 - **无客户端连接**：确保两台设备在同一网络
-- **快捷键不工作**：检查是否有其他应用程序占用了相同的快捷键
+- **鼠标中键不工作**：检查是否有其他应用程序占用了鼠标中键功能，或确保应用程序有捕获输入的必要权限
 - **权限错误**：确保应用程序有捕获输入的必要权限
 
 ### 客户端问题
