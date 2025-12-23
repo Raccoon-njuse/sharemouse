@@ -14,7 +14,12 @@ class ShareMouseApp:
         
         # Modules
         self.net_mgr = NetworkManager(self.mode, self.args.host, self.args.port, self._on_network_message)
-        self.input_handler = InputHandler(on_event=self._on_input_event, on_toggle=self._on_toggle_control)
+        self.input_handler = InputHandler(
+            on_event=self._on_input_event, 
+            on_toggle=self._on_toggle_control,
+            invert_scroll_x=self.args.invert_scroll_x,
+            invert_scroll_y=self.args.invert_scroll_y
+        )
         self.clipboard_mgr = ClipboardManager(on_update=self._on_clipboard_update)
         
         self.remote_active = False
@@ -23,7 +28,9 @@ class ShareMouseApp:
         parser = argparse.ArgumentParser(description="LAN ShareMouse - Share Keyboard, Mouse and Clipboard")
         parser.add_argument("--mode", choices=["server", "client"], required=True, help="Run as server (host) or client (guest)")
         parser.add_argument("--host", default="0.0.0.0", help="Host IP address to bind (server) or connect to (client)")
-        parser.add_argument("--port", type=int, default=5000, help="Port number")
+        parser.add_argument("--port", type=int, default=5001, help="Port number")
+        parser.add_argument("--invert-scroll-x", action="store_true", help="Invert horizontal mouse scroll direction")
+        parser.add_argument("--invert-scroll-y", action="store_true", help="Invert vertical mouse scroll direction (natural scrolling)")
         return parser.parse_args()
 
     def start(self):

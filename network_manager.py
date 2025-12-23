@@ -34,6 +34,7 @@ class NetworkManager:
                 logger.info("Waiting for connection...")
                 try:
                     conn, addr = server_sock.accept()
+                    conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)  # Disable Nagle's algorithm
                     logger.info(f"Connected by {addr}")
                     self.conn = conn
                     self._handle_connection(conn)
@@ -51,6 +52,7 @@ class NetworkManager:
             try:
                 logger.info(f"Connecting to {self.host}:{self.port}...")
                 self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)  # Disable Nagle's algorithm
                 self.sock.connect((self.host, self.port))
                 self.conn = self.sock
                 logger.info("Connected to server")

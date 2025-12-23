@@ -4,7 +4,7 @@ import threading
 import time
 
 class InputHandler:
-    def __init__(self, on_event=None, on_toggle=None):
+    def __init__(self, on_event=None, on_toggle=None, invert_scroll_x=False, invert_scroll_y=False):
         self.on_event = on_event
         self.on_toggle = on_toggle
         self.mouse_controller = mouse.Controller()
@@ -15,6 +15,15 @@ class InputHandler:
         self.hotkey_listener = None
         self.capture_mouse_listener = None
         self.capture_key_listener = None
+        
+        # Scroll inversion configuration
+        self.invert_scroll_x = invert_scroll_x
+        self.invert_scroll_y = invert_scroll_y
+        
+        # Mouse move throttling
+        self.last_mouse_move_time = 0
+        self.throttle_interval = 0.016  # ~60 FPS
+        self.pending_mouse_move = None
         
         # Shortcuts state
         self.pressed_keys = set()
@@ -177,11 +186,24 @@ class InputHandler:
 
     # Capture Listeners
     def _on_mouse_move(self, x, y):
-        # Normalize
+        # Normalize coordinates
         nx = x / self.screen_size[0]
         ny = y / self.screen_size[1]
+        current_time = time.time()
+        
         if self.on_event:
-            self.on_event({'type': 'mm', 'x': nx, 'y': ny})
+            # Check if we should send immediately
+            if current_time - self.last_mouse_move_time >= self.throttle_interval:
+                # Send immediately
+                self.on_event({'type': 'mm', 'x': nx, 'y': ny})
+                self.last_mouse_move_time = current_time
+                self.pending_mouse_move = None
+            else:
+                # Save as pending if there's no pending move
+                if not self.pending_mouse_move:
+                    self.pending_mouse_move = {'x': nx, 'y': ny}
+                    # Schedule sending the pending move after throttle interval
+                    threading.Timer(self.throttle_interval, self._send_pending_mouse_move).start()
 
     def _on_mouse_click(self, x, y, button, pressed):
         nx = x / self.screen_size[0]
@@ -191,8 +213,21 @@ class InputHandler:
             self.on_event({'type': 'mc', 'x': nx, 'y': ny, 'button': btn, 'pressed': pressed})
 
     def _on_mouse_scroll(self, x, y, dx, dy):
+        # Apply scroll inversion
+        processed_dx = -dx if self.invert_scroll_x else dx
+        processed_dy = -dy if self.invert_scroll_y else dy
+        
         if self.on_event:
-            self.on_event({'type': 'ms', 'dx': dx, 'dy': dy})
+            self.on_event({'type': 'ms', 'dx': processed_dx, 'dy': processed_dy})
+    
+    def _send_pending_mouse_move(self):
+        """Send the pending mouse move event if there is one."""
+        if self.pending_mouse_move and self.on_event:
+            current_time = time.time()
+            if current_time - self.last_mouse_move_time >= self.throttle_interval:
+                self.on_event({'type': 'mm', 'x': self.pending_mouse_move['x'], 'y': self.pending_mouse_move['y']})
+                self.last_mouse_move_time = current_time
+                self.pending_mouse_move = None
 
     def _on_key_press(self, key):
         if self._check_toggle(key, True):
@@ -241,7 +276,12 @@ class InputHandler:
                     self.mouse_controller.release(btn)
                     
             elif etype == 'ms':
-                self.mouse_controller.scroll(data['dx'], data['dy'])
+                # Apply scroll inversion for incoming events
+                dx = data['dx']
+                dy = data['dy']
+                processed_dx = -dx if self.invert_scroll_x else dx
+                processed_dy = -dy if self.invert_scroll_y else dy
+                self.mouse_controller.scroll(processed_dx, processed_dy)
                 
             elif etype == 'kp':
                 key_str = data['key']
